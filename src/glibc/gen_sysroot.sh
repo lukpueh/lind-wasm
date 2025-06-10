@@ -1,24 +1,17 @@
-#!/bin/bash
+GLIBC_BASE="/home/lind/lind-wasm/src/glibc"
+BUILDDIR="$BUILDDIR"
+CLANG="$PWD/clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04"
+CC="$CLANG/bin/clang"
 
-echo "test" > $@
+mkdir -p $BUILDDIR
+cd $BUILDDIR
 
-export GLIBC_BASE=$PWD/src/glibc
-export WORKSPACE=$PWD
+../configure --disable-werror --disable-hidden-plt --disable-profile --with-headers=/usr/i686-linux-gnu/include --prefix=$PWD/target --host=i686-linux-gnu --build=i686-linux-gnu \
+    CFLAGS=" -matomics -mbulk-memory -O2 -g" \
+    CC="$CC --target=wasm32-unkown-wasi -v -Wno-int-conversion"
 
-export CLANG=$PWD/clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04
-export CC=$CLANG/bin/clang
+make -j8 --keep-going 2>&1 THREAD_MODEL=posix
 
-echo $GLIBC_BASE >> $@
-echo $CLANG >> $@
-echo $CC >> $@
-
-cd $GLIBC_BASE
-rm -rf build
-./wasm-config.sh
-cd build
-make -j8 --keep-going 2>&1 THREAD_MODEL=posix | tee check.log || true
-
-cd ../nptl
 
 # Define common flags
 CFLAGS="--target=wasm32-unknown-wasi -v -Wno-int-conversion -std=gnu11 -fgnu89-inline -matomics -mbulk-memory -O2 -g"
@@ -27,8 +20,8 @@ EXTRA_FLAGS="-fmerge-all-constants -ftrapping-math -fno-stack-protector -fno-com
 EXTRA_FLAGS+=" -Wp,-U_FORTIFY_SOURCE -fmath-errno -fPIE -ftls-model=local-exec"
 INCLUDE_PATHS="
     -I../include
-    -I$GLIBC_BASE/build/nptl
-    -I$GLIBC_BASE/build
+    -I$BUILDDIR/nptl
+    -I$BUILDDIR
     -I../sysdeps/lind
     -I../lind_syscall
     -I../sysdeps/unix/sysv/linux/i386/i686
@@ -65,41 +58,37 @@ INCLUDE_PATHS="
     -I.
 "
 SYS_INCLUDE="-nostdinc -isystem $CLANG/lib/clang/16/include -isystem /usr/i686-linux-gnu/include"
-DEFINES="-D_LIBC_REENTRANT -include $GLIBC_BASE/build/libc-modules.h -DMODULE_NAME=libc"
+DEFINES="-D_LIBC_REENTRANT -include $BUILDDIR/libc-modules.h -DMODULE_NAME=libc"
 EXTRA_DEFINES="-include ../include/libc-symbols.h -DPIC -DTOP_NAMESPACE=glibc"
 
+cd ../nptl
 $CC $CFLAGS $WARNINGS $EXTRA_FLAGS \
     $INCLUDE_PATHS $SYS_INCLUDE $DEFINES $EXTRA_DEFINES \
-    -o $GLIBC_BASE/build/nptl/pthread_create.o \
-    -c pthread_create.c -MD -MP -MF $GLIBC_BASE/build/nptl/pthread_create.o.dt \
-    -MT $GLIBC_BASE/build/nptl/pthread_create.o
+    -o $BUILDDIR/nptl/pthread_create.o \
+    -c pthread_create.c -MD -MP -MF $BUILDDIR/nptl/pthread_create.o.dt \
+    -MT $BUILDDIR/nptl/pthread_create.o
 
 $CC $CFLAGS $WARNINGS $EXTRA_FLAGS \
     $INCLUDE_PATHS $SYS_INCLUDE $DEFINES $EXTRA_DEFINES \
-    -o $GLIBC_BASE/build/lind_syscall.o \
+    -o $BUILDDIR/lind_syscall.o \
     -c $GLIBC_BASE/lind_syscall/lind_syscall.c
 
 # Compile assembly files
-cd ../ && \
+cd ../
 $CC --target=wasm32-wasi-threads -matomics \
-    -o $GLIBC_BASE/build/csu/wasi_thread_start.o \
+    -o $BUILDDIR/csu/wasi_thread_start.o \
     -c $GLIBC_BASE/csu/wasm32/wasi_thread_start.s
 
 $CC --target=wasm32-wasi-threads -matomics \
-    -o $GLIBC_BASE/build/csu/set_stack_pointer.o \
+    -o $BUILDDIR/csu/set_stack_pointer.o \
     -c $GLIBC_BASE/csu/wasm32/set_stack_pointer.s
 
-GLIBC_BASE="/home/lind/lind-wasm/src/glibc"
-# Define the source directory for object files (change ./build to your desired path)
-src_dir="$GLIBC_BASE/build"
 
 # Define paths for copying additional resources
 include_source_dir="$GLIBC_BASE/target/include"
 crt1_source_path="$GLIBC_BASE/lind_syscall/crt1.o"
-lind_syscall_path="$GLIBC_BASE/build/lind_syscall.o" # Path to the lind_syscall.o file
+lind_syscall_path="$BUILDDIR/lind_syscall.o" # Path to the lind_syscall.o file
 
-# TARGET_TRIPLE = wasm32-wasi
-TARGET_TRIPLE=wasm32-wasi-threads
 
 # Define the output archive and sysroot directory
 output_archive="$GLIBC_BASE/sysroot/lib/wasm32-wasi/libc.a"
@@ -109,14 +98,14 @@ sysroot_dir="$GLIBC_BASE/sysroot"
 rm -rf "$sysroot_dir"
 
 # Find all .o files recursively in the source directory, ignoring stamp.o
-object_files=$(find "$src_dir" -type f -name "*.o" ! \( -name "stamp.o" -o -name "argp-pvh.o" -o -name "repertoire.o" -o -name "static-stubs.o" \))
+object_files=$(find "$BUILDDIR" -type f -name "*.o" ! \( -name "stamp.o" -o -name "argp-pvh.o" -o -name "repertoire.o" -o -name "static-stubs.o" \))
 
 # Add the lind_syscall.o file to the list of object files
 object_files="$object_files $lind_syscall_path"
 
 # Check if object files were found
 if [ -z "$object_files" ]; then
-  echo "No suitable .o files found in '$src_dir'."
+  echo "No suitable .o files found in '$BUILDDIR'."
   exit 1
 fi
 
@@ -124,7 +113,7 @@ fi
 mkdir -p "$sysroot_dir/include/wasm32-wasi" "$sysroot_dir/lib/wasm32-wasi"
 
 # Pack all found .o files into a single .a archive
-${CLANG:=/home/lind/lind-wasm/clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04}/bin/llvm-ar rcs "$output_archive" $object_files
+"$CLANG/bin/llvm-ar" rcs "$output_archive" $object_files
 "$CLANG/bin/llvm-ar" crs "$GLIBC_BASE/sysroot/lib/wasm32-wasi/libpthread.a"
 
 # Check if llvm-ar succeeded
