@@ -60,7 +60,6 @@ RUN --mount=from=clang,target=/clang tar xf /clang/clang.tar.xz
 # GLIBC
 ###################
 COPY src/glibc src/glibc
-RUN cp -r src/glibc/wasi clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04/lib/clang/16/lib
 RUN ./src/glibc/gen_sysroot.sh
 
 ###################

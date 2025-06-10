@@ -2,6 +2,7 @@ GLIBC_BASE="/home/lind/lind-wasm/src/glibc"
 BUILDDIR="$BUILDDIR"
 CLANG="$PWD/clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04"
 CC="$CLANG/bin/clang"
+cp -r $GLIBC_BASE/wasi $CLANG/lib/clang/16/lib
 
 mkdir -p $BUILDDIR
 cd $BUILDDIR
