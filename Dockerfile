@@ -29,8 +29,6 @@ RUN apt-get update && \
         wget \
         zip
 
-RUN apt update -qq && apt install -y -qq bazel
-
 #####################
 # USER SETUP
 #####################
