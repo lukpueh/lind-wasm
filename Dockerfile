@@ -1,3 +1,9 @@
+# Apply Docker best practices for downloading and extracting large files
+# https://docs.docker.com/build/building/best-practices/#add-or-copy
+# chmod is required to extract as user below
+FROM scratch AS clang
+ADD --chmod=644 https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.4/clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04.tar.xz /clang.tar.xz
+
 FROM ubuntu:latest
 
 #####################
@@ -47,11 +53,8 @@ WORKDIR /home/lind/lind-wasm
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
 ENV PATH="/home/lind/.cargo/bin:${PATH}"
 
-# Clang
-# See "ADD is better than manually adding files using something like wget and tar" in
-# https://docs.docker.com/build/building/best-practices/#add-or-copy
-RUN curl -sL https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.4/clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04.tar.xz | \
-        tar -xvJ
+# Extract Clang
+RUN --mount=from=clang,target=/clang tar xf /clang/clang.tar.xz
 
 ###################
 # GLIBC
