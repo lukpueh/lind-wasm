@@ -50,6 +50,7 @@ WORKDIR /home/lind/lind-wasm
 # USER DEPENDENCIES
 ###################
 # Rust
+# TODO: do we always need latest nightly? cache probably not invalidated by nightly change
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain nightly
 ENV PATH="/home/lind/.cargo/bin:${PATH}"
 
@@ -59,13 +60,14 @@ RUN --mount=from=clang,target=/clang tar xf /clang/clang.tar.xz
 ###################
 # GLIBC
 ###################
-COPY src/glibc src/glibc
+COPY --chown=lind:lind src/glibc src/glibc
 RUN ./src/glibc/gen_sysroot.sh
 
 ###################
 # WASMTIME
 ###################
-
+COPY --chown=lind:lind src/wasmtime src/RawPOSIX src/fdtables src/sysdefs src/
+RUN cargo build --manifest-path src/wasmtime/Cargo.toml
 
 ###################
 # TESTS
