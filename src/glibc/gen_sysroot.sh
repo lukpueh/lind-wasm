@@ -2,7 +2,7 @@
 
 set -x
 
-# Paths
+# Define absolute paths expected by lindtool.sh and wasmtestreport.sh
 GLIBC="/home/lind/lind-wasm/src/glibc"
 CLANG="/home/lind/lind-wasm/clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04"
 BUILD="$GLIBC/build"
@@ -10,7 +10,6 @@ CC="$CLANG/bin/clang"
 SYSROOT="$GLIBC/sysroot"
 SYSROOT_ARCHIVE="$SYSROOT/lib/wasm32-wasi/libc.a"
 
-# Common compile flags
 # Define common flags
 CFLAGS="--target=wasm32-unknown-wasi -v -Wno-int-conversion -std=gnu11 -fgnu89-inline -matomics -mbulk-memory -O2 -g"
 WARNINGS="-Wall -Wwrite-strings -Wundef -Wstrict-prototypes -Wold-style-definition"
