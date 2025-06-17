@@ -18,6 +18,7 @@ import subprocess
 from pathlib import Path
 import argparse
 import shutil
+import multiprocessing
 
 DEFAULT_TIMEOUT = 5 # in seconds
 
@@ -39,7 +40,6 @@ DETERMINISTIC_PARENT_NAME = "deterministic"
 NON_DETERMINISTIC_PARENT_NAME = "non-deterministic"
 EXPECTED_DIRECTORY = Path("./expected")
 SKIP_TESTS_FILE = "skip_test_cases.txt"
-
 
 error_types = {
     "Failure_native_compiling": "Compilation Failure Native",
@@ -646,10 +646,6 @@ def main():
             file.unlink()
         return
 
-    results = {
-        "deterministic": get_empty_result(),
-        "non_deterministic": get_empty_result()
-    }
 
     try:
         shutil.rmtree(TESTFILES_DST)
@@ -687,10 +683,8 @@ def main():
         return
 
     total_count = len(tests_to_run)
-    for i, source_file in enumerate(tests_to_run):
-        print(f"[{i+1}/{total_count}] {source_file}")
+    def _run_test(source_file, results, timeout_sec):
         parent_name = source_file.parent.name
-
         # checks the name of immediate parent folder to see if a test is deterministic or non deterministic.
         if parent_name == DETERMINISTIC_PARENT_NAME:
             test_single_file_deterministic(source_file, results["deterministic"], timeout_sec)
@@ -706,7 +700,27 @@ def main():
             cwasm_file.unlink()
         if native_file and native_file.exists():
             native_file.unlink()
-    
+
+    with multiprocessing.Manager() as manager:
+
+        results = manager.dict({
+            "deterministic": get_empty_result(),
+            "non_deterministic": get_empty_result()
+        })
+
+        processes = []
+        for i, source_file in enumerate(tests_to_run):
+            print(f"[{i+1}/{total_count}] {source_file}")
+
+            p = multiprocessing.Process(target=_run_test, args=(source_file, results, timeout_sec))
+
+            processes.append(p)
+            p.start()
+
+        for p in processes:
+            p.join()
+
+        results = results.copy()
     shutil.rmtree(TESTFILES_DST) # removes the test files from the lind fs root
     
     os.chdir(LIND_WASM_BASE)
