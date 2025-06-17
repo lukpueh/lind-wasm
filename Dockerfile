@@ -10,33 +10,25 @@ FROM ubuntu:latest
 #####################
 # SYSTEM DEPENDENCIES
 #####################
-# TODO: only install required deps, and only in the stage, where needed
-# TODO: https://docs.docker.com/build/building/best-practices/#apt-get
+# * glibc deps as per INSTALL
+#   * gcc not installed, because we use clang
+#   * required cross-compilation header files installed via libc6-dev-i386-cross
+# * build-essential, curl, ca-certificates needed by rust installer (and untar clang?)
+# * libxml2 needed by clang
 RUN apt-get update && \
-    apt-get install -y -qq \
-        apt-transport-https \
-        bash \
-        binaryen \
+    apt-get install -y --no-install-recommends -qq \
+        make \
+        libc6-dev-i386-cross \
+        binutils \
+        gawk \
         bison \
+        sed \
+        python3 \
         build-essential \
         curl \
-        g++ \
-        g++-i686-linux-gnu \
-        gawk \
-        gcc \
-        gcc-i686-linux-gnu \
-        git \
-        gnupg \
-        golang \
-        libssl-dev \
+        ca-certificates \
         libxml2 \
-        openssl \
-        python3 \
-        sudo \
-        unzip \
-        vim \
-        wget \
-        zip
+    && rm -rf /var/lib/apt/lists/*
 
 
 ###################
