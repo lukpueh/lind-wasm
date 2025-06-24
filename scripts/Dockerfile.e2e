@@ -63,7 +63,9 @@ COPY --parents src/wasmtime src/RawPOSIX src/fdtables src/sysdefs .
 # TODO: install wasmtime binary on PATH and remove hardcoded paths in tools
 RUN cargo build --manifest-path src/wasmtime/Cargo.toml --release && \
     (cd src/wasmtime/target && ln -sf ../release/wasmtime debug && ls -la debug)
-RUN /src/wasmtime/debug/wasmtime --help
+RUN /src/wasmtime/target/debug/wasmtime --help
+RUN //src//wasmtime/target/debug/wasmtime --help
+
 ###################
 # Run TESTS
 ###################
