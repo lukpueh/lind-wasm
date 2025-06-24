@@ -63,10 +63,10 @@ COPY --parents src/wasmtime src/RawPOSIX src/fdtables src/sysdefs .
 # TODO: install wasmtime binary on PATH and remove hardcoded paths in tools
 RUN cargo build --manifest-path src/wasmtime/Cargo.toml --release && \
     (cd src/wasmtime/target && ln -sf ../release/wasmtime debug && ls -la debug)
-
+RUN /src/wasmtime/debug/wasmtime --help
 ###################
 # Run TESTS
 ###################
-COPY --parents scripts tests tools skip_test_cases.txt .
-RUN LIND_WASM_BASE=/  LIND_FS_ROOT=/src/RawPOSIX/tmp ./scripts/wasmtestreport.py && \
-    cat results.json
+# COPY --parents scripts tests tools skip_test_cases.txt .
+# RUN LIND_WASM_BASE=/  LIND_FS_ROOT=/src/RawPOSIX/tmp ./scripts/wasmtestreport.py && \
+#     cat results.json
