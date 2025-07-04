@@ -1,0 +1,29 @@
+#!/bin/bash
+set -uex
+
+# TODO:
+# - add clang, wasm-opt and wasmtime to the path
+# - use convention for sysroot path? e.g. relative to clang?
+# alternative:
+# - rely on env vars, e.g. CC=/path/to/clang --sysroot=/path/to/sysroot
+#
+
+
+
+if [ "$#" -ne 1 || "${$1: -2}" != ".c" ]; then
+    echo "usage: $0 <path to .c file>"
+    exit 1
+fi
+
+path_c="$1"
+path_wasm="${$1%.}.wasm"
+path_cwasm="${$1%.}.cwasm"
+
+clang -pthread --target=wasm32-unknown-wasi \
+    --sysroot /sysroot \
+    -Wl,--import-memory,--export-memory,--max-memory=67108864,--export="__stack_pointer",--export=__stack_low \
+    "$path_c" -g -O0 -o "$path_wasm"
+
+wasm-opt --epoch-injection --asyncify -O2 --debuginfo "$path_wasm" -o "$path_wasm"
+
+wasmtime compile "$path_wasm" -o "$path_cwasm"
