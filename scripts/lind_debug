@@ -1,0 +1,6 @@
+#!/bin/bash
+set -ue
+
+# WASMTIME="/path/to/wasmtime" ./lind_debug /path/to/program.cwasm
+
+gdb --args $WASMTIME run -D debug-info -O opt-level=0 --wasi threads=y --wasi preview2=n "$@"

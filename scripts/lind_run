@@ -1,4 +1,6 @@
 #!/bin/bash
 set -ue
+# WASMTIME=/path/to/wasmtime ./lind_run /path/to/program.[c]wasm
+# TODO: .cwasm needs extra flag
 
-$LIND_WASMTIME run --wasi threads=y --wasi preview2=n "$@"
+$WASMTIME run --wasi threads=y --wasi preview2=n  "$@"

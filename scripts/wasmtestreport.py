@@ -43,9 +43,9 @@ SKIP_TESTS_FILE = "skip_test_cases.txt"
 # Set paths 
 # TODO: Set in caller
 base = Path(LIND_WASM_BASE)
-os.environ["LIND_CC"] =  f"{base / 'clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04/bin/clang'} --sysroot={base / 'src/glibc/sysroot'}"
-os.environ["LIND_WASMOPT"] = str(base / 'tools/binaryen/bin/wasm-opt')
-os.environ["LIND_WASMTIME"] = str(base / "src/wasmtime/target/debug/wasmtime")
+os.environ["CC"] =  f"{base / 'clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04/bin/clang'} --sysroot={base / 'src/glibc/sysroot'}"
+os.environ["WASMOPT"] = str(base / 'tools/binaryen/bin/wasm-opt')
+os.environ["WASMTIME"] = str(base / "src/wasmtime/target/debug/wasmtime")
 
 error_types = {
     "Failure_native_compiling": "Compilation Failure Native",
@@ -218,7 +218,7 @@ def run_compiled_wasm(wasm_file, timeout_sec=DEFAULT_TIMEOUT):
         filtered_lines = lines[1:]
         filtered_output = "\n".join(filtered_lines)
 
-        return (proc.returncode, filtered_output)
+        return (proc.returncode, full_output)
 
     except subprocess.TimeoutExpired as e:
         return ("timeout", f"Timed Out (timeout: {timeout_sec}s)")
