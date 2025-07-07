@@ -1,29 +1,30 @@
 #!/bin/bash
-set -uex
+set -ue
 
-# TODO:
-# - add clang, wasm-opt and wasmtime to the path
-# - use convention for sysroot path? e.g. relative to clang?
-# alternative:
-# - rely on env vars, e.g. CC=/path/to/clang --sysroot=/path/to/sysroot
+# Cross-compile passed .c file to .wasm and .cwasm files
 #
+# Usage:
+#   export LIND_CC="/path/to/clang --sysroot=/absolute/path/to/sysroot"
+#   export LIND_WASMOPT="/path/to/wasm-opt"
+#   export LIND_WASMTIME="/path/to/wasmtime"
+#
+#   ./lind_compile /path/to/program.c
+#
+# TODO: Default to clang, wasm-opt and wasmtime on PATH, if env vars are not set.
+# Use convention for sysroot path, e.g. relative to clang binary?
 
-
-
-if [ "$#" -ne 1 || "${$1: -2}" != ".c" ]; then
-    echo "usage: $0 <path to .c file>"
+# Require exactly one argument, with .c extension
+if [[ "$#" -ne 1 || "${1: -2}" != ".c" ]]; then
+    echo "usage: $0 </path/to/*.c file>"
     exit 1
 fi
 
 path_c="$1"
-path_wasm="${$1%.}.wasm"
-path_cwasm="${$1%.}.cwasm"
+path_wasm="${1%.c}.wasm"
+path_cwasm="${1%.c}.cwasm"
 
-clang -pthread --target=wasm32-unknown-wasi \
-    --sysroot /sysroot \
+$LIND_CC -pthread --target=wasm32-unknown-wasi \
     -Wl,--import-memory,--export-memory,--max-memory=67108864,--export="__stack_pointer",--export=__stack_low \
     "$path_c" -g -O0 -o "$path_wasm"
-
-wasm-opt --epoch-injection --asyncify -O2 --debuginfo "$path_wasm" -o "$path_wasm"
-
-wasmtime compile "$path_wasm" -o "$path_cwasm"
+$LIND_WASMOPT --epoch-injection --asyncify -O2 --debuginfo "$path_wasm" -o "$path_wasm"
+$LIND_WASMTIME compile "$path_wasm" -o "$path_cwasm"

@@ -1,0 +1,4 @@
+#!/bin/bash
+set -ue
+
+$LIND_WASMTIME run --wasi threads=y --wasi preview2=n "$@"
