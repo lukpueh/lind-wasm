@@ -38,7 +38,7 @@ jobs:
           flavor: |
             latest=true
 
-      - run: echo ${{ steps.meta.outputs.tags }}
+      - run: echo "${{ steps.meta.outputs.tags }}"
 
       # # Build 'release' stage and push to Dockerhub
       # - name: Release and push
