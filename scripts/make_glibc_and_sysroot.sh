@@ -14,11 +14,9 @@
 #
 set -x
 
-# TODO: Fix absolute paths (consider using $PWD, if necessary)
-GLIBC="/src/glibc"
-CLANG="/clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04"
+CC="clang"
+GLIBC="$PWD/src/glibc"
 BUILD="$GLIBC/build"
-CC="$CLANG/bin/clang"
 SYSROOT="$GLIBC/sysroot"
 SYSROOT_ARCHIVE="$SYSROOT/lib/wasm32-wasi/libc.a"
 
@@ -70,8 +68,6 @@ SYS_INCLUDE="-nostdinc -isystem $CLANG/lib/clang/16/include -isystem /usr/i686-l
 DEFINES="-D_LIBC_REENTRANT -include $BUILD/libc-modules.h -DMODULE_NAME=libc"
 EXTRA_DEFINES="-include ../include/libc-symbols.h -DPIC -DTOP_NAMESPACE=glibc"
 
-# Copy clang wasi libs
-cp -r $GLIBC/wasi $CLANG/lib/clang/16/lib
 
 # Build glibc
 rm -rf $BUILD
@@ -87,7 +83,7 @@ cd $BUILD
   --host=i686-linux-gnu \
   --build=i686-linux-gnu \
   CFLAGS=" -matomics -mbulk-memory -O2 -g" \
-  CC="$CC --target=wasm32-unknown-wasi -v -Wno-int-conversion"
+  CC="clang --target=wasm32-unknown-wasi -v -Wno-int-conversion"
 
 make -j$(($(nproc) * 2)) --keep-going 2>&1 THREAD_MODEL=posix | tee check.log
 
@@ -131,8 +127,8 @@ fi
 mkdir -p "$SYSROOT/include/wasm32-wasi" "$SYSROOT/lib/wasm32-wasi"
 
 # Pack all found .o files into a single .a archive
-"$CLANG/bin/llvm-ar" rcs "$SYSROOT_ARCHIVE" $object_files
-"$CLANG/bin/llvm-ar" crs "$GLIBC/sysroot/lib/wasm32-wasi/libpthread.a"
+llvm-ar rcs "$SYSROOT_ARCHIVE" $object_files
+llvm-ar crs "$GLIBC/sysroot/lib/wasm32-wasi/libpthread.a"
 
 # Check if llvm-ar succeeded
 if [ $? -eq 0 ]; then

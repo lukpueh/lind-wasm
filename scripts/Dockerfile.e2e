@@ -45,11 +45,17 @@ RUN apt-get update && \
         sed \
     && rm -rf /var/lib/apt/lists/*
 
+# Install clang
+ARG LLVM="llvmorg-16.0.4"
+ARG CLANG="clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04"
 # NOTE: We `curl | tar` in spite of Docker best practices to save cache layers
-RUN curl -sL https://github.com/llvm/llvm-project/releases/download/llvmorg-16.0.4/clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04.tar.xz | \
+RUN curl -sL https://github.com/llvm/llvm-project/releases/download/${LLVM}/${CLANG}.tar.xz | \
        tar -xvJ
-# TODO: Add copy wasi stuff from source
+# TODO: Fix copy
+COPY src/glibc/wasi /${CLANG}/lib/clang/16/lib
+ENV PATH="/${CLANG}/bin:${PATH}"
 
+# Install Rust
 # NOTE: pinning known-to-work nightly-2025-06-01 (see #242)
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | \
     sh -s -- -y --default-toolchain nightly-2025-06-01
@@ -58,26 +64,21 @@ ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Build wasmtime
 FROM base as build-wasmtime
-COPY --parents src/wasmtime src/RawPOSIX src/fdtables src/sysdefs .
-# Build wasmtime with `--release` flag for faster tests
-# NOTE: `ln` workaround required for hard-coded paths in test tools (lind_config.sh)
-RUN cargo build --manifest-path src/wasmtime/Cargo.toml --release && \
-    (cd src/wasmtime/target && mkdir -p debug && ln -sf ../release/wasmtime debug)
+COPY --parents src/wasmtime src/RawPOSIX src/fdtables src/sysdefs Makefile .
+RUN make wasmtime
+
 
 # Build glibc and generate sysroot
 FROM base AS build-glibc
-COPY --parents scripts/make_glibc_and_sysroot.sh src/glibc .
-RUN ./scripts/make_glibc_and_sysroot.sh
+COPY --parents scripts/make_glibc_and_sysroot.sh src/glibc Makefile .
+RUN make sysroot
+
 
 # Run all tests, print results, and exit with 1, if any test fails; 0 otherwise
 FROM base AS test
 COPY --parents scripts tests tools skip_test_cases.txt .
 # NOTE: Build artifacts from prior stages are only mounted, to save COPY time
 # and cache layers. This means they are not preserved in the resulting image.
-# NOTE: `grep` workaround required for lack of meaningful exit code in wasmtestreport.py
 RUN --mount=from=build-wasmtime,source=src/wasmtime/target,destination=src/wasmtime/target \
     --mount=from=build-glibc,source=src/glibc/sysroot,destination=src/glibc/sysroot \
-    --mount=from=build-glibc,source=clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04,destination=clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04 \
-    LIND_WASM_BASE=/  LIND_FS_ROOT=/src/RawPOSIX/tmp ./scripts/wasmtestreport.py && \
-    cat results.json && \
-    ! grep '"number_of_failures": [^0]' results.json
+    make tests

@@ -40,13 +40,6 @@ NON_DETERMINISTIC_PARENT_NAME = "non-deterministic"
 EXPECTED_DIRECTORY = Path("./expected")
 SKIP_TESTS_FILE = "skip_test_cases.txt"
 
-# Set paths 
-# TODO: Set in caller
-base = Path(LIND_WASM_BASE)
-os.environ["CC"] =  f"{base / 'clang+llvm-16.0.4-x86_64-linux-gnu-ubuntu-22.04/bin/clang'} --sysroot={base / 'src/glibc/sysroot'}"
-os.environ["WASMOPT"] = str(base / 'tools/binaryen/bin/wasm-opt')
-os.environ["WASMTIME"] = str(base / "src/wasmtime/target/debug/wasmtime")
-
 error_types = {
     "Failure_native_compiling": "Compilation Failure Native",
     "Failure_native_running": "Runtime Failure Native",
