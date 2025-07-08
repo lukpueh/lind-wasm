@@ -1,0 +1,5 @@
+#!/bin/bash
+set -ue
+
+# usage: ./lind_run /path/to/lind-program.[c]wasm
+src/wasmtime/target/release/wasmtime run --allow-precompiled --wasi threads=y --wasi preview2=n  "$@"
