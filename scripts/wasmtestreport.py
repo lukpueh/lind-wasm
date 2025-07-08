@@ -170,7 +170,7 @@ def compile_c_to_wasm(source_file):
         if result.returncode != 0:
             return (None, result.stdout + "\n" + result.stderr)
         else:
-            wasm_file = Path(testcase + ".wasm")
+            wasm_file = Path(testcase + ".cwasm")
             return (wasm_file, "")
     except Exception as e:
         return (None, f"Exception during compilation: {str(e)}")
@@ -199,7 +199,8 @@ def compile_c_to_wasm(source_file):
 #   the first line in stdout by the script which is the command itself
 # ----------------------------------------------------------------------
 def run_compiled_wasm(wasm_file, timeout_sec=DEFAULT_TIMEOUT):
-    testcase = str(wasm_file.with_suffix(''))
+    # testcase = str(wasm_file.with_suffix(''))
+    print(wasm_file)
     run_cmd = [os.path.join(LIND_TOOL_PATH, "lind_run"), wasm_file]
     if DEBUG_MODE:
         print("Running command:", run_cmd)
