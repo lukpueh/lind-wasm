@@ -22,4 +22,4 @@ clang --sysroot=${PWD}/src/glibc/sysroot \
     "$path_c" -g -O0 -o "$path_wasm"
 
 tools/binaryen/bin/wasm-opt --epoch-injection --asyncify -O2 --debuginfo "$path_wasm" -o "$path_wasm"
-src/wasmtime/target/release/wasmtime "$path_wasm" -o "$path_cwasm"
+src/wasmtime/target/release/wasmtime compile "$path_wasm" -o "$path_cwasm"
